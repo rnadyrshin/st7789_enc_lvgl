@@ -10,6 +10,12 @@ extern "C" {
 #define ENC_DT_GPIO     6
 #define ENC_SW_GPIO     5
 
+#define DIR_NONE            0x0   // No complete step yet.
+#define DIR_CW              0x10  // Clockwise step.
+#define DIR_CCW             0x20  // Anti-clockwise step.
+#define DIR_BUT_PRESS       0x40
+#define DIR_BUT_LONG_PRESS  0x80
+
 typedef struct {
     int32_t pos;
     int8_t dir;

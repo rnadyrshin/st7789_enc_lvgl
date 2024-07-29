@@ -1,7 +1,4 @@
-set(srcs "display"
-         "display/fonts"
-         "st7789"
-         "encoder"
+set(srcs "encoder"
          "lvgl_demo"
          ".")
 

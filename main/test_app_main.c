@@ -12,7 +12,6 @@
 #include "driver/spi_master.h"
 
 #include "esp_system.h"
-//#include "esp_timer.h"
 
 #include "esp_lcd_panel_io.h"
 #include "esp_lcd_panel_vendor.h"
@@ -20,11 +19,8 @@
 #include "esp_lcd_panel_commands.h"
 
 #include "esp_heap_caps.h"
-#include "display/dispcolor.h"
-#include "display/fonts/font.h"
 #include "lvgl.h"
 
-#include "st7789/st7789.h"
 #include "encoder/encoder.h"
 #include "lvgl_demo/lvgl_demo_1.h"
 #include "lvgl_demo/lvgl_demo_2.h"
@@ -37,24 +33,61 @@ static char *TAG = "ENC";
 #define EXAMPLE_LVGL_TASK_STACK_SIZE   (4 * 1024)
 #define EXAMPLE_LVGL_TASK_PRIORITY     2
 
-static SemaphoreHandle_t lvgl_mux = NULL;
+#define TEST_LCD_BK_LIGHT_GPIO  15
+#define TEST_LCD_RST_GPIO       -1
+#define TEST_LCD_CS_GPIO        16
+#define TEST_LCD_DC_GPIO        17
+#define TEST_LCD_PCLK_GPIO      8
+#define TEST_LCD_MOSI_GPIO      9
 
-uint32_t cntr = 0;
-int32_t pos = 0;
-
-void lvgl_meter_1(lv_disp_t *disp);
-void lvgl_meter_2(lv_disp_t *disp);
-
-void input_cb(sEncoderInfo event) {
-    ESP_LOGI(TAG, "event %d, pos %ld", event.event, event.pos);
-    pos = event.pos;
-}
+#define TEST_LCD_PIXEL_CLOCK_HZ (30 * 1000 * 1000)
 
 #define EXAMPLE_LCD_H_RES       170
 #define EXAMPLE_LCD_V_RES       320
 
-bool example_lvgl_lock(int timeout_ms)
-{
+//#define DEMO_NUM_MAX            2
+
+static SemaphoreHandle_t lvgl_mux = NULL;
+
+typedef void (*run_demo_t)();
+
+run_demo_t demo_func[] = {
+    lvgl_demo_1,
+    lvgl_demo_2
+};
+
+uint8_t demo_num = 0;
+uint32_t cntr = 0;
+int32_t pos = 0;
+
+bool example_lvgl_lock(int timeout_ms);
+void example_lvgl_unlock();
+
+static void run_demo(uint8_t num) {
+    if (example_lvgl_lock(-1)) {
+        demo_func[num]();
+        example_lvgl_unlock();
+    }
+}
+
+void input_cb(sEncoderInfo event) {
+    ESP_LOGI(TAG, "event %d, pos %ld", event.event, event.pos);
+    pos = event.pos;
+
+    switch (event.event)
+    {
+    case DIR_BUT_LONG_PRESS:
+        if (++demo_num == (sizeof(demo_func) / sizeof(run_demo_t)))
+            demo_num = 0;
+
+        run_demo(demo_num);
+        break;
+    default:
+        break;
+    }
+}
+
+bool example_lvgl_lock(int timeout_ms) {
     // Convert timeout in milliseconds to FreeRTOS ticks
     // If `timeout_ms` is set to -1, the program will block until the condition is met
     const TickType_t timeout_ticks = (timeout_ms == -1) ? portMAX_DELAY : pdMS_TO_TICKS(timeout_ms);
@@ -105,21 +138,18 @@ static void example_lvgl_port_update_callback(lv_disp_drv_t *drv)
     }
 }
 
-static void example_increase_lvgl_tick(void *arg)
-{
+static void example_increase_lvgl_tick(void *arg) {
     /* Tell LVGL how many milliseconds has elapsed */
     lv_tick_inc(EXAMPLE_LVGL_TICK_PERIOD_MS);
 }
 
-static bool example_notify_lvgl_flush_ready(esp_lcd_panel_io_handle_t panel_io, esp_lcd_panel_io_event_data_t *edata, void *user_ctx)
-{
+static bool example_notify_lvgl_flush_ready(esp_lcd_panel_io_handle_t panel_io, esp_lcd_panel_io_event_data_t *edata, void *user_ctx) {
     lv_disp_drv_t *disp_driver = (lv_disp_drv_t *)user_ctx;
     lv_disp_flush_ready(disp_driver);
     return false;
 }
 
-static void example_lvgl_port_task(void *arg)
-{
+static void example_lvgl_port_task(void *arg) {
     ESP_LOGI(TAG, "Starting LVGL task");
     uint32_t task_delay_ms = EXAMPLE_LVGL_TASK_MAX_DELAY_MS;
     
@@ -144,8 +174,7 @@ void SetBL(uint8_t Value) {
     ledc_update_duty(LEDC_LOW_SPEED_MODE, LEDC_CHANNEL_0);
 }
 
-static void lcd_init()
-{
+static void lcd_init() {
     static lv_disp_draw_buf_t disp_buf; // contains internal graphic buffer(s) called draw buffer(s)
     static lv_disp_drv_t disp_drv;      // contains callback functions
 
@@ -257,33 +286,19 @@ static void lcd_init()
     xTaskCreate(example_lvgl_port_task, "LVGL", EXAMPLE_LVGL_TASK_STACK_SIZE, NULL, EXAMPLE_LVGL_TASK_PRIORITY, NULL);
 }
 
-static void run_demo_1() {
-    if (example_lvgl_lock(-1)) {
-        lvgl_demo_1();
-        example_lvgl_unlock();
-    }
-}
-
-static void run_demo_2() {
-    if (example_lvgl_lock(-1)) {
-        lvgl_demo_2();
-        example_lvgl_unlock();
-    }
-}
-
 void app_main()
 {
     lcd_init();
-    //run_demo_1();
+    run_demo(demo_num);
 
     encoder_init();
     encoder_set_cb(input_cb);
     encoder_start();
 
     while (1) {
-        run_demo_1();
-        vTaskDelay(2000);
-        run_demo_2();
+        //run_demo_1();
+        //vTaskDelay(2000);
+        //run_demo_2();
         vTaskDelay(2000);
     }
 }

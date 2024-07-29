@@ -13,10 +13,7 @@
 #define TABLE_ROWS      7
 #define TABLE_COLS      4
 
-#define DIR_NONE        0x0   // No complete step yet.
-#define DIR_CW          0x10  // Clockwise step.
-#define DIR_CCW         0x20  // Anti-clockwise step.
-#define DIR_BUT_PRESS   0x40  // Button pressed.
+#define LONG_PRESS_MS   1500
 
 // Create the half-step state table (emits a code at 00 and 11)
 #define R_START         0x0
@@ -37,10 +34,12 @@ static const uint8_t _table_half[TABLE_ROWS][TABLE_COLS] = {
 };
 
 static char *TAG = "ENC";
+static bool long_press_sended = false;
 static bool need_to_stop = false;
 static bool task_started = false;
 static uint8_t state = R_START;
 static bool old_btn_state = true;
+static uint32_t btn_press_time_ms = 0;
 static encoder_cb_t _cb = NULL;
 static QueueHandle_t gpio_evt_queue = NULL;
 static sEncoderInfo encoder_info = {0};
@@ -91,10 +90,28 @@ static void enc_task(void* arg)
             }
         } else {
             bool btn_state = gpio_get_level(ENC_SW_GPIO);
-            if (btn_state != old_btn_state) {
-                if ((!btn_state) && _cb) {
-                    encoder_info.event = DIR_BUT_PRESS;
-                    _cb(encoder_info);
+
+            if (_cb) {
+                if (!btn_state && !old_btn_state && !long_press_sended)
+                {
+                    if (xTaskGetTickCount() - btn_press_time_ms >= LONG_PRESS_MS) {
+                        long_press_sended = true;
+                        encoder_info.event = DIR_BUT_LONG_PRESS;
+                        _cb(encoder_info);
+                    }
+                }
+
+                if (btn_state != old_btn_state) {
+                    if (!btn_state) {
+                        btn_press_time_ms = xTaskGetTickCount();
+                        long_press_sended = false;
+                    }
+                    else {
+                        if (xTaskGetTickCount() - btn_press_time_ms < LONG_PRESS_MS) {
+                            encoder_info.event = DIR_BUT_PRESS;
+                            _cb(encoder_info);
+                        }
+                    }
                 }
                 old_btn_state = btn_state;
             }
