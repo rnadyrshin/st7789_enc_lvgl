@@ -1,0 +1,22 @@
+{
+    "idf.adapterTargetName": "esp32s3",
+    "idf.port": "/dev/tty.usbmodem1101",
+    "files.associations": {
+        "st7789.h": "c",
+        "string.h": "c",
+        "encoder.h": "c",
+        "__locale": "c",
+        "__bit_reference": "c",
+        "bitset": "c",
+        "__memory": "c",
+        "limits": "c",
+        "locale": "c",
+        "ratio": "c",
+        "tuple": "c",
+        "ios": "c",
+        "font.h": "c"
+    },
+    "idf.openOcdConfigs": [
+        "board/esp32s3-builtin.cfg"
+    ]
+}
