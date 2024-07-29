@@ -14,7 +14,8 @@
         "ratio": "c",
         "tuple": "c",
         "ios": "c",
-        "font.h": "c"
+        "font.h": "c",
+        "lvgl_demo_2.h": "c"
     },
     "idf.openOcdConfigs": [
         "board/esp32s3-builtin.cfg"

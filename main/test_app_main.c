@@ -26,6 +26,8 @@
 
 #include "st7789/st7789.h"
 #include "encoder/encoder.h"
+#include "lvgl_demo/lvgl_demo_1.h"
+#include "lvgl_demo/lvgl_demo_2.h"
 
 static char *TAG = "ENC";
 #define TEST_SPI_HOST_ID                SPI2_HOST
@@ -142,7 +144,7 @@ void SetBL(uint8_t Value) {
     ledc_update_duty(LEDC_LOW_SPEED_MODE, LEDC_CHANNEL_0);
 }
 
-static void guiTask(void *pvParameter)
+static void lcd_init()
 {
     static lv_disp_draw_buf_t disp_buf; // contains internal graphic buffer(s) called draw buffer(s)
     static lv_disp_drv_t disp_drv;      // contains callback functions
@@ -253,66 +255,35 @@ static void guiTask(void *pvParameter)
     assert(lvgl_mux);
     ESP_LOGI(TAG, "Create LVGL task");
     xTaskCreate(example_lvgl_port_task, "LVGL", EXAMPLE_LVGL_TASK_STACK_SIZE, NULL, EXAMPLE_LVGL_TASK_PRIORITY, NULL);
+}
 
-    ESP_LOGI(TAG, "Display LVGL Meter Widget");
-    // Lock the mutex due to the LVGL APIs are not thread-safe
+static void run_demo_1() {
     if (example_lvgl_lock(-1)) {
-        lvgl_meter_1(disp);
-        lvgl_meter_2(disp);
-
-        // Release the mutex
+        lvgl_demo_1();
         example_lvgl_unlock();
     }
+}
 
-    vTaskDelete(NULL);
+static void run_demo_2() {
+    if (example_lvgl_lock(-1)) {
+        lvgl_demo_2();
+        example_lvgl_unlock();
+    }
 }
 
 void app_main()
 {
-    //dispcolor_Init(170, 320);
-    //dispcolor_ClearScreen();
-    //dispcolor_SetBrightness(255);
-
-    xTaskCreatePinnedToCore(guiTask, "gui", 4096 * 2, NULL, 0, NULL, 1);
+    lcd_init();
+    //run_demo_1();
 
     encoder_init();
     encoder_set_cb(input_cb);
     encoder_start();
 
     while (1) {
-        vTaskDelay(20);
+        run_demo_1();
+        vTaskDelay(2000);
+        run_demo_2();
+        vTaskDelay(2000);
     }
-
-    /*Change the active screen's background color
-    lv_obj_set_style_bg_color(lv_screen_active(), lv_color_hex(0x003a57), LV_PART_MAIN);
-
-    lv_obj_t * label = lv_label_create(lv_screen_active());
-    lv_label_set_text(label, "Hello world");
-    lv_obj_set_style_text_color(lv_screen_active(), lv_color_hex(0xffffff), LV_PART_MAIN);
-    lv_obj_align(label, LV_ALIGN_CENTER, 0, 0);
-*/
-
-    while (1) {
-        dispcolor_ClearScreen();
-
-        dispcolor_DrawLine(0, 0, 170, 320, RED);
-        dispcolor_DrawLine(170, 0, 0, 320, RED);
-
-        dispcolor_DrawLine(0, 0, 170, 0, GREEN);
-        dispcolor_DrawLine(0, 319, 169, 319, GREEN);
-
-        dispcolor_DrawLine(0, 0, 0, 319, BLUE);
-        dispcolor_DrawLine(169, 0, 169, 319, BLUE);
-
-        dispcolor_printf(10, 10, FONTID_10X16F, WHITE, "Counter %d", cntr++);
-        dispcolor_printf(10, 40, FONTID_10X16F, WHITE, "Pos %ld", pos);
-
-        dispcolor_Update();
-        vTaskDelay(20);
-    }
-
-    //lcd_panel_test();
-
-    //printf("turn off the panel\r\n");
-    //st7789_deinit();
 }

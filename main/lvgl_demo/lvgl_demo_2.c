@@ -1,12 +1,5 @@
-/*
- * SPDX-FileCopyrightText: 2021-2022 Espressif Systems (Shanghai) CO LTD
- *
- * SPDX-License-Identifier: CC0-1.0
- */
-
-// This demo UI is adapted from LVGL official example: https://docs.lvgl.io/master/widgets/extra/meter.html#simple-meter
-
 #include "lvgl.h"
+#include "lvgl_demo_2.h"
 
 static lv_obj_t *meter1;
 static lv_obj_t *meter2;
@@ -33,20 +26,9 @@ static void btn_cb(lv_event_t * e)
     lv_disp_set_rotation(disp, rotation);
 }
 
-void lvgl_meter_1(lv_disp_t *disp)
+static void lvgl_meter_1()
 {
-    lv_obj_t *scr = lv_disp_get_scr_act(disp);
-
-    lv_theme_t * th = lv_theme_default_init(disp,  /*Use the DPI, size, etc from this display*/
-                                        lv_palette_main(LV_PALETTE_BLUE), lv_palette_main(LV_PALETTE_CYAN),   /*Primary and secondary palette*/
-                                        false,    /*Light or dark mode*/
-                                        &lv_font_montserrat_14); /*Small, normal, large fonts*/
-
-    lv_disp_set_theme(disp, th);
-
-
-    lv_obj_t *meter = lv_meter_create(scr);
-    //lv_obj_center(meter);
+    lv_obj_t *meter = lv_meter_create(lv_scr_act());
     lv_obj_set_pos(meter, 6, 1);
     lv_obj_set_size(meter, 158, 158);
 
@@ -104,9 +86,9 @@ void lvgl_meter_1(lv_disp_t *disp)
     lv_anim_start(&a);
 }
 
-void lvgl_meter_2(lv_disp_t *disp) {
+static void lvgl_meter_2() {
     lv_obj_t *meter = lv_meter_create(lv_scr_act());
-    lv_obj_set_pos(meter, 6, 160 + 1);
+    lv_obj_set_pos(meter, 6, 60 + 1);
     lv_obj_set_size(meter, 158, 158);
 
     /*Remove the circle from the middle*/
@@ -147,4 +129,11 @@ void lvgl_meter_2(lv_disp_t *disp) {
     lv_anim_set_playback_time(&a, 2000);
     lv_anim_set_var(&a, indic3);
     lv_anim_start(&a);
+}
+
+void lvgl_demo_2() {
+    lv_anim_del_all();
+    lv_obj_clean(lv_scr_act());
+    lvgl_meter_1();
+    lvgl_meter_2();
 }

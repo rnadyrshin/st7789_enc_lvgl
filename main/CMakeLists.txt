@@ -2,6 +2,7 @@ set(srcs "display"
          "display/fonts"
          "st7789"
          "encoder"
+         "lvgl_demo"
          ".")
 
 
