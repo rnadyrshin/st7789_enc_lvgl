@@ -7,7 +7,6 @@
 
 #include "esp_log.h"
 #include "driver/gpio.h"
-#include "driver/ledc.h"
 
 #include "driver/spi_master.h"
 
@@ -21,9 +20,14 @@
 #include "esp_heap_caps.h"
 #include "lvgl.h"
 
+#include "backlight/bl.h"
 #include "encoder/encoder.h"
 #include "lvgl_demo/lvgl_demo_1.h"
 #include "lvgl_demo/lvgl_demo_2.h"
+#include "lvgl_demo/lvgl_demo_3.h"
+#include "lvgl_demo/lvgl_demo_4.h"
+#include "lvgl_demo/lvgl_demo_5.h"
+#include "lvgl_demo/lvgl_settings.h"
 
 static char *TAG = "ENC";
 #define TEST_SPI_HOST_ID                SPI2_HOST
@@ -45,15 +49,19 @@ static char *TAG = "ENC";
 #define EXAMPLE_LCD_H_RES       170
 #define EXAMPLE_LCD_V_RES       320
 
-//#define DEMO_NUM_MAX            2
+#define BL_DEFAULT              50
 
 static SemaphoreHandle_t lvgl_mux = NULL;
 
 typedef void (*run_demo_t)();
 
 run_demo_t demo_func[] = {
+    lvgl_settings,
+    lvgl_demo_5,
     lvgl_demo_1,
-    lvgl_demo_2
+    lvgl_demo_2,
+    lvgl_demo_3,
+    lvgl_demo_4,
 };
 
 uint8_t demo_num = 0;
@@ -70,17 +78,24 @@ static void run_demo(uint8_t num) {
     }
 }
 
+void demo_next() {
+    if (++demo_num == (sizeof(demo_func) / sizeof(run_demo_t)))
+        demo_num = 0;
+
+    run_demo(demo_num);
+}
+
 void input_cb(sEncoderInfo event) {
-    ESP_LOGI(TAG, "event %d, pos %ld", event.event, event.pos);
+    ////ESP_LOGI(TAG, "event %d, pos %d", event.event, event.pos);
     pos = event.pos;
 
     switch (event.event)
     {
     case DIR_BUT_LONG_PRESS:
-        if (++demo_num == (sizeof(demo_func) / sizeof(run_demo_t)))
-            demo_num = 0;
+        //if (++demo_num == (sizeof(demo_func) / sizeof(run_demo_t)))
+        //    demo_num = 0;
 
-        run_demo(demo_num);
+        //run_demo(demo_num);
         break;
     default:
         break;
@@ -169,37 +184,28 @@ static void example_lvgl_port_task(void *arg) {
     }
 }
 
-void SetBL(uint8_t Value) {
-    ledc_set_duty(LEDC_LOW_SPEED_MODE, LEDC_CHANNEL_0, Value);
-    ledc_update_duty(LEDC_LOW_SPEED_MODE, LEDC_CHANNEL_0);
+static int16_t enc_pos_last = 0;
+
+void encoder_read(lv_indev_drv_t* drv, lv_indev_data_t* data) {
+    int16_t enc_pos = enc_get_pos();
+    data->enc_diff = enc_pos - enc_pos_last;
+    enc_pos_last = enc_pos;
+
+    if (data->enc_diff != 0) {
+        ////ESP_LOGI(TAG, "diff %d", data->enc_diff);
+    }
+    if (enc_pressed()) {
+        data->state = LV_INDEV_STATE_PRESSED;
+        ////ESP_LOGI(TAG, "pressed");
+    } else
+        data->state = LV_INDEV_STATE_RELEASED;
 }
 
 static void lcd_init() {
     static lv_disp_draw_buf_t disp_buf; // contains internal graphic buffer(s) called draw buffer(s)
     static lv_disp_drv_t disp_drv;      // contains callback functions
 
-    ledc_timer_config_t ledcfg = {
-        .speed_mode = LEDC_LOW_SPEED_MODE,
-        .duty_resolution = LEDC_TIMER_8_BIT,
-        .timer_num = LEDC_TIMER_0,
-        .freq_hz = 100000,
-        //.clk_cfg = 0,
-        .deconfigure = false,
-    };
-    ledc_timer_config(&ledcfg);
-
-    ledc_channel_config_t ledchancfg = {
-        .gpio_num = TEST_LCD_BK_LIGHT_GPIO,
-        .speed_mode = LEDC_LOW_SPEED_MODE,
-        .channel = LEDC_CHANNEL_0,
-        .intr_type = LEDC_INTR_DISABLE,
-        .timer_sel = LEDC_TIMER_0,
-        .duty = 0,
-    };
-    ledc_channel_config(&ledchancfg);
-
-    SetBL(150);
-
+    bl_init(TEST_LCD_BK_LIGHT_GPIO);
 
     ESP_LOGI(TAG, "Initialize SPI bus");
     spi_bus_config_t buscfg = {
@@ -240,7 +246,6 @@ static void lcd_init() {
     ESP_ERROR_CHECK(esp_lcd_panel_reset(panel_handle));
     ESP_ERROR_CHECK(esp_lcd_panel_init(panel_handle));
     ESP_ERROR_CHECK(esp_lcd_panel_invert_color(panel_handle, true));
-    //ESP_ERROR_CHECK(esp_lcd_panel_mirror(panel_handle, true, false));
     esp_lcd_panel_set_gap(panel_handle, 35, 0);
 
     // user can flush pre-defined pattern to the screen before we turn on the screen or backlight
@@ -270,6 +275,24 @@ static void lcd_init() {
     disp_drv.user_data = panel_handle;
     lv_disp_t *disp = lv_disp_drv_register(&disp_drv);
 
+
+
+    // Register at least one display before you register any input devices
+    lv_disp_drv_register(&disp_drv);
+
+    static lv_indev_drv_t indev_drv;
+    lv_indev_drv_init(&indev_drv);      // Basic initialization
+    indev_drv.type = LV_INDEV_TYPE_ENCODER;
+    indev_drv.read_cb = encoder_read;
+
+    // Register the driver in LVGL and save the created input device object
+    lv_indev_t * my_indev = lv_indev_drv_register(&indev_drv);
+
+    lv_group_t * g = lv_group_create();
+    lv_group_set_default(g);
+    lv_indev_set_group(my_indev, g);
+
+
     ESP_LOGI(TAG, "Install LVGL tick timer");
     // Tick interface for LVGL (using esp_timer to generate 2ms periodic event)
     const esp_timer_create_args_t lvgl_tick_timer_args = {
@@ -288,17 +311,19 @@ static void lcd_init() {
 
 void app_main()
 {
-    lcd_init();
-    run_demo(demo_num);
-
     encoder_init();
     encoder_set_cb(input_cb);
     encoder_start();
 
+    lcd_init();
+    run_demo(demo_num);
+
+    for (int i = 0 ; i <= BL_DEFAULT; i++) {
+        bl_set(i);
+        vTaskDelay(30);
+    }
+
     while (1) {
-        //run_demo_1();
-        //vTaskDelay(2000);
-        //run_demo_2();
         vTaskDelay(2000);
     }
 }

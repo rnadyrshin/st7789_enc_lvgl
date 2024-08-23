@@ -17,7 +17,7 @@ extern "C" {
 #define DIR_BUT_LONG_PRESS  0x80
 
 typedef struct {
-    int32_t pos;
+    int16_t pos;
     int8_t dir;
     uint8_t event;
 } sEncoderInfo;
@@ -30,6 +30,8 @@ void encoder_deinit();
 void encoder_start();
 void encoder_stop();
 void encoder_set_cb(encoder_cb_t cb);
+int16_t enc_get_pos();
+bool enc_pressed();
 
 #ifdef __cplusplus
 }

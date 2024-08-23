@@ -74,7 +74,7 @@ static void IRAM_ATTR gpio_isr_handler(void* arg)
     }
 
     if (send_event)
-        xQueueSendFromISR(gpio_evt_queue, &encoder_info, NULL);
+        xQueueSendFromISR(gpio_evt_queue, &event, NULL);
 }
 
 static void enc_task(void* arg)
@@ -172,4 +172,12 @@ void encoder_stop() {
 
 void encoder_set_cb(encoder_cb_t cb) {
     _cb = cb;
+}
+
+int16_t enc_get_pos() {
+    return encoder_info.pos;
+}
+
+bool enc_pressed() {
+    return !gpio_get_level(ENC_SW_GPIO);
 }

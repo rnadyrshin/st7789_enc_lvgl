@@ -1,139 +1,95 @@
+#include "esp_log.h"
 #include "lvgl.h"
+#include "../backlight/bl.h"
 #include "lvgl_demo_2.h"
 
-static lv_obj_t *meter1;
-static lv_obj_t *meter2;
-static lv_obj_t *btn;
-static lv_disp_rot_t rotation = LV_DISP_ROT_NONE;
+static char *TAG = "DEMO2";
+static lv_timer_t* tmr = NULL;
 
-static void set_value_1(void *indic, int32_t v)
-{
-    lv_meter_set_indicator_end_value(meter1, indic, v);
-}
+void demo_next();
 
-static void set_value_2(void *indic, int32_t v)
+static void draw_event_cb(lv_event_t * e)
 {
-    lv_meter_set_indicator_end_value(meter2, indic, v);
-}
+    lv_obj_draw_part_dsc_t * dsc = lv_event_get_draw_part_dsc(e);
+    if(dsc->part == LV_PART_ITEMS) {
+        lv_obj_t * obj = lv_event_get_target(e);
+        lv_chart_series_t * ser = lv_chart_get_series_next(obj, NULL);
+        uint32_t cnt = lv_chart_get_point_count(obj);
+        /*Make older value more transparent*/
+        dsc->rect_dsc->bg_opa = (LV_OPA_COVER *  dsc->id) / (cnt - 1);
 
-static void btn_cb(lv_event_t * e)
-{
-    lv_disp_t *disp = lv_event_get_user_data(e);
-    rotation++;
-    if (rotation > LV_DISP_ROT_270) {
-        rotation = LV_DISP_ROT_NONE;
+        /*Make smaller values blue, higher values red*/
+        lv_coord_t * x_array = lv_chart_get_x_array(obj, ser);
+        lv_coord_t * y_array = lv_chart_get_y_array(obj, ser);
+        /*dsc->id is the tells drawing order, but we need the ID of the point being drawn.*/
+        uint32_t start_point = lv_chart_get_x_start_point(obj, ser);
+        uint32_t p_act = (start_point + dsc->id) % cnt; /*Consider start point to get the index of the array*/
+        lv_opa_t x_opa = (x_array[p_act] * LV_OPA_50) / 20;
+        lv_opa_t y_opa = (y_array[p_act] * LV_OPA_50) / 80;
+
+        dsc->rect_dsc->bg_color = lv_color_mix(lv_palette_main(LV_PALETTE_RED),
+                                               lv_palette_main(LV_PALETTE_BLUE),
+                                               x_opa + y_opa);
     }
-    lv_disp_set_rotation(disp, rotation);
 }
 
-static void lvgl_meter_1()
+static void add_data(lv_timer_t * timer)
 {
-    lv_obj_t *meter = lv_meter_create(lv_scr_act());
-    lv_obj_set_pos(meter, 6, 1);
-    lv_obj_set_size(meter, 158, 158);
-
-    // Add a scale first
-    lv_meter_scale_t *scale = lv_meter_add_scale(meter);
-    lv_meter_set_scale_ticks(meter, scale, 41, 2, 10, lv_palette_main(LV_PALETTE_GREY));
-    lv_meter_set_scale_major_ticks(meter, scale, 8, 4, 15, lv_palette_main(LV_PALETTE_GREY), 10);
-
-    lv_meter_indicator_t *indic;
-
-    // Add a blue arc to the start
-    indic = lv_meter_add_arc(meter, scale, 3, lv_palette_main(LV_PALETTE_BLUE), 0);
-    lv_meter_set_indicator_start_value(meter, indic, 0);
-    lv_meter_set_indicator_end_value(meter, indic, 20);
-
-    // Make the tick lines blue at the start of the scale
-    indic = lv_meter_add_scale_lines(meter, scale, lv_palette_main(LV_PALETTE_BLUE), lv_palette_main(LV_PALETTE_BLUE), false, 0);
-    lv_meter_set_indicator_start_value(meter, indic, 0);
-    lv_meter_set_indicator_end_value(meter, indic, 20);
-
-    // Add a red arc to the end
-    indic = lv_meter_add_arc(meter, scale, 3, lv_palette_main(LV_PALETTE_RED), 0);
-    lv_meter_set_indicator_start_value(meter, indic, 80);
-    lv_meter_set_indicator_end_value(meter, indic, 100);
-
-    // Make the tick lines red at the end of the scale
-    indic = lv_meter_add_scale_lines(meter, scale, lv_palette_main(LV_PALETTE_RED), lv_palette_main(LV_PALETTE_RED), false, 0);
-    lv_meter_set_indicator_start_value(meter, indic, 80);
-    lv_meter_set_indicator_end_value(meter, indic, 100);
-
-    // Add a needle line indicator
-    indic = lv_meter_add_needle_line(meter, scale, 4, lv_palette_main(LV_PALETTE_GREY), -10);
-    meter1 = meter;
-
-
-    //btn = lv_btn_create(scr);
-    //lv_obj_t * lbl = lv_label_create(btn);
-    //lv_label_set_text_static(lbl, LV_SYMBOL_REFRESH" ROTATE");
-    //lv_obj_align(btn, LV_ALIGN_BOTTOM_LEFT, 30, -30);
-    
-    // Button event
-    //lv_obj_add_event_cb(btn, btn_cb, LV_EVENT_CLICKED, disp);
-
-    /*Create an animation to set the value*/
-    lv_anim_t a;
-    lv_anim_init(&a);
-    lv_anim_set_exec_cb(&a, set_value_1);
-    lv_anim_set_var(&a, indic);
-    lv_anim_set_values(&a, 0, 100);
-    lv_anim_set_time(&a, 2000);
-    lv_anim_set_repeat_delay(&a, 100);
-    lv_anim_set_playback_time(&a, 500);
-    lv_anim_set_playback_delay(&a, 100);
-    lv_anim_set_repeat_count(&a, LV_ANIM_REPEAT_INFINITE);
-    lv_anim_start(&a);
+    LV_UNUSED(timer);
+    lv_obj_t * chart = timer->user_data;
+    lv_chart_set_next_value2(chart, lv_chart_get_series_next(chart, NULL), lv_rand(0, 20), lv_rand(0, 80));
 }
 
-static void lvgl_meter_2() {
-    lv_obj_t *meter = lv_meter_create(lv_scr_act());
-    lv_obj_set_pos(meter, 6, 60 + 1);
-    lv_obj_set_size(meter, 158, 158);
+static void lv_example_chart()
+{
+    lv_obj_t * chart = lv_chart_create(lv_scr_act());
+    lv_obj_set_size(chart, 135, 250);
+    lv_obj_set_pos(chart, 32, 3);
 
-    /*Remove the circle from the middle*/
-    lv_obj_remove_style(meter, NULL, LV_PART_INDICATOR);
+    lv_obj_add_event_cb(chart, draw_event_cb, LV_EVENT_DRAW_PART_BEGIN, NULL);
+    lv_obj_set_style_line_width(chart, 0, LV_PART_ITEMS);
 
-    /*Add a scale first*/
-    lv_meter_scale_t * scale = lv_meter_add_scale(meter);
-    //lv_meter_set_scale_ticks(meter, scale, 11, 2, 10, lv_palette_main(LV_PALETTE_GREY));
-    lv_meter_set_scale_major_ticks(meter, scale, 1, 2, 18, lv_color_hex3(0xeee), 11);
-    lv_meter_set_scale_range(meter, scale, 0, 100, 270, 90);
+    lv_chart_set_type(chart, LV_CHART_TYPE_SCATTER);
 
-    /*Add a three arc indicator*/
-    lv_meter_indicator_t * indic1 = lv_meter_add_arc(meter, scale, 6, lv_palette_main(LV_PALETTE_RED), 0);
-    lv_meter_indicator_t * indic2 = lv_meter_add_arc(meter, scale, 6, lv_palette_main(LV_PALETTE_GREEN), -6);
-    lv_meter_indicator_t * indic3 = lv_meter_add_arc(meter, scale, 6, lv_palette_main(LV_PALETTE_BLUE), -12);
-    meter2 = meter;
+    lv_chart_set_axis_tick(chart, LV_CHART_AXIS_PRIMARY_X, 8, 3, 5, 5, true, 30);
+    lv_chart_set_axis_tick(chart, LV_CHART_AXIS_PRIMARY_Y, 8, 3, 9, 5, true, 50);
 
-    /*Create an animation to set the value*/
-    lv_anim_t a;
-    lv_anim_init(&a);
-    lv_anim_set_exec_cb(&a, set_value_2);
-    lv_anim_set_values(&a, 0, 100);
-    lv_anim_set_repeat_delay(&a, 100);
-    lv_anim_set_playback_delay(&a, 100);
-    lv_anim_set_repeat_count(&a, LV_ANIM_REPEAT_INFINITE);
+    lv_chart_set_range(chart, LV_CHART_AXIS_PRIMARY_X, 0, 20);
+    lv_chart_set_range(chart, LV_CHART_AXIS_PRIMARY_Y, 0, 80);
 
-    lv_anim_set_time(&a, 2000);
-    lv_anim_set_playback_time(&a, 500);
-    lv_anim_set_var(&a, indic1);
-    lv_anim_start(&a);
+    lv_chart_set_point_count(chart, 50);
 
-    lv_anim_set_time(&a, 1000);
-    lv_anim_set_playback_time(&a, 1000);
-    lv_anim_set_var(&a, indic2);
-    lv_anim_start(&a);
+    lv_chart_series_t * ser = lv_chart_add_series(chart, lv_palette_main(LV_PALETTE_RED), LV_CHART_AXIS_PRIMARY_Y);
+    uint32_t i;
+    for(i = 0; i < 50; i++) {
+        lv_chart_set_next_value2(chart, ser, lv_rand(0, 200), lv_rand(0, 1000));
+    }
 
-    lv_anim_set_time(&a, 1000);
-    lv_anim_set_playback_time(&a, 2000);
-    lv_anim_set_var(&a, indic3);
-    lv_anim_start(&a);
+    tmr = lv_timer_create(add_data, 100, chart);
+}
+
+static void next_handler(lv_event_t * e) {
+    lv_event_code_t code = lv_event_get_code(e);
+
+    if (code == LV_EVENT_CLICKED) {
+        lv_timer_pause(tmr);
+        lv_timer_reset(tmr);
+        demo_next();
+    }
+}
+
+static void lvgl_create_next_btn() {
+    lv_obj_t* btn_next = lv_btn_create(lv_scr_act());
+    lv_obj_add_event_cb(btn_next, next_handler, LV_EVENT_ALL, NULL);
+    lv_obj_align(btn_next, LV_ALIGN_BOTTOM_LEFT, 0, 0);
+    lv_obj_t* label = lv_label_create(btn_next);
+    lv_label_set_text(label, ">>");
+    lv_obj_center(label);
 }
 
 void lvgl_demo_2() {
     lv_anim_del_all();
     lv_obj_clean(lv_scr_act());
-    lvgl_meter_1();
-    lvgl_meter_2();
+    lv_example_chart();
+    lvgl_create_next_btn();
 }

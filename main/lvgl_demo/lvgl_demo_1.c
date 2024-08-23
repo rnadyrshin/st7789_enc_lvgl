@@ -6,6 +6,8 @@ static lv_obj_t *meter2;
 static lv_obj_t *btn;
 static lv_disp_rot_t rotation = LV_DISP_ROT_NONE;
 
+void demo_next();
+
 static void set_value_1(void *indic, int32_t v)
 {
     lv_meter_set_indicator_end_value(meter1, indic, v);
@@ -132,9 +134,27 @@ static void lvgl_meter_2() {
     lv_anim_start(&a);
 }
 
+static void next_handler(lv_event_t * e) {
+    lv_event_code_t code = lv_event_get_code(e);
+
+    if (code == LV_EVENT_CLICKED) {
+        demo_next();
+    }
+}
+
+static void lvgl_create_next_btn() {
+    lv_obj_t* btn_next = lv_btn_create(lv_scr_act());
+    lv_obj_add_event_cb(btn_next, next_handler, LV_EVENT_ALL, NULL);
+    lv_obj_align(btn_next, LV_ALIGN_BOTTOM_LEFT, 0, 0);
+    lv_obj_t* label = lv_label_create(btn_next);
+    lv_label_set_text(label, ">>");
+    lv_obj_center(label);
+}
+
 void lvgl_demo_1() {
     lv_anim_del_all();
     lv_obj_clean(lv_scr_act());
     lvgl_meter_1();
     lvgl_meter_2();
+    lvgl_create_next_btn();
 }
