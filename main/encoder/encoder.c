@@ -140,6 +140,7 @@ void encoder_init() {
     gpio_config(&pin_config);
 
     // ENC_SW_GPIO
+    pin_config.intr_type = GPIO_INTR_DISABLE;
     pin_config.pin_bit_mask = 1ULL << ENC_SW_GPIO;
     gpio_config(&pin_config);
 

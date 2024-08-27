@@ -126,7 +126,7 @@ static void lvgl_meter_2() {
     slider = lv_slider_create(lv_scr_act());
     lv_obj_set_pos(slider, 12, 62);
     lv_obj_set_width(slider, 103);
-    lv_slider_set_range(slider, 5, 100);
+    lv_slider_set_range(slider, 0, 100);
     lv_slider_set_value(slider, bl_get(), LV_ANIM_ON);
     lv_obj_add_event_cb(slider, bl_event_cb, LV_EVENT_VALUE_CHANGED, NULL);
     bl_label = lv_label_create(lv_scr_act());

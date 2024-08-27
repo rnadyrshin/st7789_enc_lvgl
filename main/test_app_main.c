@@ -86,7 +86,7 @@ void demo_next() {
 }
 
 void input_cb(sEncoderInfo event) {
-    ////ESP_LOGI(TAG, "event %d, pos %d", event.event, event.pos);
+    //ESP_LOGI(TAG, "event %d, pos %d", event.event, event.pos);
     pos = event.pos;
 
     switch (event.event)
@@ -276,7 +276,6 @@ static void lcd_init() {
     lv_disp_t *disp = lv_disp_drv_register(&disp_drv);
 
 
-
     // Register at least one display before you register any input devices
     lv_disp_drv_register(&disp_drv);
 
@@ -312,8 +311,6 @@ static void lcd_init() {
 void app_main()
 {
     encoder_init();
-    encoder_set_cb(input_cb);
-    encoder_start();
 
     lcd_init();
     run_demo(demo_num);
