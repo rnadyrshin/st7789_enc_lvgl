@@ -52,6 +52,7 @@ static char *TAG = "ENC";
 #define BL_DEFAULT              50
 
 static SemaphoreHandle_t lvgl_mux = NULL;
+static int16_t enc_pos_last = 0;
 
 typedef void (*run_demo_t)();
 
@@ -109,13 +110,11 @@ bool example_lvgl_lock(int timeout_ms) {
     return xSemaphoreTakeRecursive(lvgl_mux, timeout_ticks) == pdTRUE;
 }
 
-void example_lvgl_unlock()
-{
+void example_lvgl_unlock() {
     xSemaphoreGiveRecursive(lvgl_mux);
 }
 
-static void example_lvgl_flush_cb(lv_disp_drv_t *drv, const lv_area_t *area, lv_color_t *color_map)
-{
+static void example_lvgl_flush_cb(lv_disp_drv_t *drv, const lv_area_t *area, lv_color_t *color_map) {
     esp_lcd_panel_handle_t panel_handle = (esp_lcd_panel_handle_t) drv->user_data;
     int offsetx1 = area->x1;
     int offsetx2 = area->x2;
@@ -125,8 +124,7 @@ static void example_lvgl_flush_cb(lv_disp_drv_t *drv, const lv_area_t *area, lv_
     esp_lcd_panel_draw_bitmap(panel_handle, offsetx1, offsety1, offsetx2 + 1, offsety2 + 1, color_map);
 }
 
-static void example_lvgl_port_update_callback(lv_disp_drv_t *drv)
-{
+static void example_lvgl_port_update_callback(lv_disp_drv_t *drv) {
     esp_lcd_panel_handle_t panel_handle = (esp_lcd_panel_handle_t) drv->user_data;
 
     switch (drv->rotated) {
@@ -183,8 +181,6 @@ static void example_lvgl_port_task(void *arg) {
         vTaskDelay(pdMS_TO_TICKS(task_delay_ms));
     }
 }
-
-static int16_t enc_pos_last = 0;
 
 void encoder_read(lv_indev_drv_t* drv, lv_indev_data_t* data) {
     int16_t enc_pos = enc_get_pos();
@@ -308,8 +304,7 @@ static void lcd_init() {
     xTaskCreate(example_lvgl_port_task, "LVGL", EXAMPLE_LVGL_TASK_STACK_SIZE, NULL, EXAMPLE_LVGL_TASK_PRIORITY, NULL);
 }
 
-void app_main()
-{
+void app_main() {
     encoder_init();
 
     lcd_init();

@@ -24,8 +24,7 @@ static uint16_t dio_state = 0;
 
 void demo_next();
 
-static void init_leds()
-{
+static void init_leds() {
     lv_obj_t * label = lv_label_create(lv_scr_act());
     lv_label_set_text(label, "DIO16  OUTPUTS");
     lv_obj_align(label, LV_ALIGN_CENTER, 0, -145);
@@ -59,8 +58,7 @@ static void init_leds()
     }
 }
 
-static void dio_tick(lv_timer_t * timer)
-{
+static void dio_tick(lv_timer_t * timer) {
     LV_UNUSED(timer);
 
     dio_state <<= 1;

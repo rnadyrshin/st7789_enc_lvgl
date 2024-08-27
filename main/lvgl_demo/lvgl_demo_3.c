@@ -11,8 +11,7 @@ static lv_timer_t* tmr2 = NULL;
 
 void demo_next();
 
-static void add_data(lv_timer_t * timer)
-{
+static void add_data(lv_timer_t * timer) {
     LV_UNUSED(timer);
     lv_obj_t * chart = timer->user_data;
     lv_chart_series_t * ser1 = lv_chart_get_series_next(chart, NULL);
@@ -21,8 +20,7 @@ static void add_data(lv_timer_t * timer)
     lv_chart_set_next_value(chart, ser2, lv_rand(40, 90));
 }
 
-static void add_data_sin(lv_timer_t * timer)
-{
+static void add_data_sin(lv_timer_t * timer) {
     LV_UNUSED(timer);
     lv_obj_t * chart = timer->user_data;
     lv_chart_series_t * ser1 = lv_chart_get_series_next(chart, NULL);
@@ -33,8 +31,7 @@ static void add_data_sin(lv_timer_t * timer)
     x = x + 0.2;
 }
 
-static void init_chart_1()
-{
+static void init_chart_1() {
     lv_obj_t * chart;
     chart = lv_chart_create(lv_scr_act());
     lv_obj_set_size(chart, 164, 130);
@@ -53,8 +50,7 @@ static void init_chart_1()
     tmr1 = lv_timer_create(add_data, 100, chart);
 }
 
-static void init_chart_2()
-{
+static void init_chart_2() {
     lv_obj_t * chart;
     chart = lv_chart_create(lv_scr_act());
     lv_obj_set_size(chart, 164, 130);

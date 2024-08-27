@@ -24,8 +24,7 @@ static void event_handler(lv_event_t * e) {
     }
 }
 
-static void init_leds()
-{
+static void init_leds() {
     lv_obj_t* label;
     lv_obj_t* btn;
     lv_obj_t* dd;

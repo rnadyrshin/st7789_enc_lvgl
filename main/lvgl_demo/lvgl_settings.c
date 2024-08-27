@@ -26,8 +26,7 @@ static uint8_t b = 0;
 
 void demo_next();
 
-static void led_config()
-{
+static void led_config() {
     ESP_LOGI(TAG, "Example configured to blink addressable LED!");
     led_strip_config_t strip_config = {
         .strip_gpio_num = BLINK_GPIO,
@@ -43,8 +42,7 @@ static void led_config()
     led_strip_clear(led_strip);
 }
 
-static void led_apply()
-{
+static void led_apply() {
     led_strip_set_pixel(led_strip, 0, r, g, b);
     led_strip_set_pixel(led_strip, 1, r, g, b);
     led_strip_set_pixel(led_strip, 2, r, g, b);
@@ -63,8 +61,7 @@ static void value_to_label(lv_obj_t* label, int value) {
     lv_label_set_text(label, buf);
 }
 
-static void bl_update_cb(lv_timer_t * timer)
-{
+static void bl_update_cb(lv_timer_t * timer) {
     LV_UNUSED(timer);
     lv_obj_t* slider = timer->user_data;
 
@@ -76,16 +73,14 @@ static void bl_update_cb(lv_timer_t * timer)
     bl_old = bl;
 }
 
-static void bl_event_cb(lv_event_t * e)
-{
+static void bl_event_cb(lv_event_t * e) {
     lv_obj_t* slider = lv_event_get_target(e);
     int value = (int) lv_slider_get_value(slider);
     display_bl_brightness(value);
     bl_set(value);
 }
 
-static void r_event_cb(lv_event_t * e)
-{
+static void r_event_cb(lv_event_t * e) {
     lv_obj_t* slider = lv_event_get_target(e);
     lv_obj_t* label = lv_event_get_user_data(e);
     r = (uint8_t) lv_slider_get_value(slider);
@@ -93,8 +88,7 @@ static void r_event_cb(lv_event_t * e)
     led_apply();
 }
 
-static void g_event_cb(lv_event_t * e)
-{
+static void g_event_cb(lv_event_t * e) {
     lv_obj_t* slider = lv_event_get_target(e);
     lv_obj_t* label = lv_event_get_user_data(e);
     g = (uint8_t) lv_slider_get_value(slider);
@@ -102,8 +96,7 @@ static void g_event_cb(lv_event_t * e)
     led_apply();
 }
 
-static void b_event_cb(lv_event_t * e)
-{
+static void b_event_cb(lv_event_t * e) {
     lv_obj_t* slider = lv_event_get_target(e);
     lv_obj_t* label = lv_event_get_user_data(e);
     b = (uint8_t) lv_slider_get_value(slider);
@@ -111,7 +104,7 @@ static void b_event_cb(lv_event_t * e)
     led_apply();
 }
 
-static void lvgl_meter_2() {
+static void lvgl_sett() {
     lv_obj_t* label;
     lv_obj_t* slider;
 
@@ -210,6 +203,6 @@ static void lvgl_create_next_btn() {
 void lvgl_settings() {
     led_config();
     lv_obj_clean(lv_scr_act());
-    lvgl_meter_2();
+    lvgl_sett();
     lvgl_create_next_btn();
 }

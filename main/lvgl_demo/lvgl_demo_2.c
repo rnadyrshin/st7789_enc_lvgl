@@ -8,8 +8,7 @@ static lv_timer_t* tmr = NULL;
 
 void demo_next();
 
-static void draw_event_cb(lv_event_t * e)
-{
+static void draw_event_cb(lv_event_t * e) {
     lv_obj_draw_part_dsc_t * dsc = lv_event_get_draw_part_dsc(e);
     if(dsc->part == LV_PART_ITEMS) {
         lv_obj_t * obj = lv_event_get_target(e);
@@ -33,15 +32,13 @@ static void draw_event_cb(lv_event_t * e)
     }
 }
 
-static void add_data(lv_timer_t * timer)
-{
+static void add_data(lv_timer_t * timer) {
     LV_UNUSED(timer);
     lv_obj_t * chart = timer->user_data;
     lv_chart_set_next_value2(chart, lv_chart_get_series_next(chart, NULL), lv_rand(0, 20), lv_rand(0, 80));
 }
 
-static void lv_example_chart()
-{
+static void lv_example_chart() {
     lv_obj_t * chart = lv_chart_create(lv_scr_act());
     lv_obj_set_size(chart, 135, 250);
     lv_obj_set_pos(chart, 32, 3);
